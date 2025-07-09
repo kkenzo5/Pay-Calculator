@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Employee Payroll Calculator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      margin: 0;
+      padding: 30px;
+    }
+    .container {
+      max-width: 700px;
+      margin: auto;
+      background: #fff;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+      color: #444;
+    }
+    input, select {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 15px;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 25px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #218838;
+    }
+    .output, .history {
+      margin-top: 30px;
+      padding: 20px;
+      background: #eef2f3;
+      border-radius: 10px;
+    }
+    .output h3, .history h3 {
+      margin-top: 0;
+    }
+    .history-entry {
+      border-top: 1px solid #ccc;
+      margin-top: 10px;
+      padding-top: 10px;
+    }
+    .clear-btn {
+      background-color: #dc3545;
+      margin-top: 10px;
+    }
+    .clear-btn:hover {
+      background-color: #c82333;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Employee Payroll Calculator</h1>
+
+    <label for="name">Employee Name</label>
+    <input type="text" id="name">
+
+    <label for="rate">Hourly Wage ($)</label>
+    <input type="number" id="rate" step="0.01">
+
+    <label for="regular">Regular Hours</label>
+    <input type="number" id="regular">
+
+    <label for="overtime">Overtime Hours</label>
+    <input type="number" id="overtime">
+
+    <label for="sick">Sick Hours</label>
+    <input type="number" id="sick">
+
+    <label for="split">Split Shift Days</label>
+    <input type="number" id="split">
+
+    <label for="meal">Missed Meal Break Days</label>
+    <input type="number" id="meal">
+
+    <label for="period">Pay Period</label>
+    <select id="period">
+      <option value="1">Weekly</option>
+      <option value="2">Bi-Weekly (2 Weeks)</option>
+      <option value="4">Monthly (4 Weeks)</option>
+    </select>
+
+    <button onclick="calculate()">Calculate Pay</button>
+
+    <div class="output" id="result" style="display:none;"></div>
+
+    <div class="history" id="history" style="display:none;">
+      <h3>Payroll History</h3>
+      <div id="historyList"></div>
+      <button class="clear-btn" onclick="clearHistory()">Clear History</button>
+    </div>
+  </div>
+
+  <script>
+    function calculate() {
+      const name = document.getElementById("name").value || "Employee";
+      const rate = parseFloat(document.getElementById("rate").value) || 0;
+      const regular = parseFloat(document.getElementById("regular").value) || 0;
+      const overtime = parseFloat(document.getElementById("overtime").value) || 0;
+      const sick = parseFloat(document.getElementById("sick").value) || 0;
+      const split = parseFloat(document.getElementById("split").value) || 0;
+      const meal = parseFloat(document.getElementById("meal").value) || 0;
+      const period = parseInt(document.getElementById("period").value);
+
+      const regularPay = regular * rate * period;
+      const overtimePay = overtime * rate * 1.5 * period;
+      const sickPay = sick * rate * period;
+      const splitPay = split * rate * period;
+      const mealPay = meal * rate * period;
+      const totalPay = regularPay + overtimePay + sickPay + splitPay + mealPay;
+
+      const periodLabel = {
+        1: "Weekly",
+        2: "Bi-Weekly",
+        4: "Monthly"
+      }[period];
+
+      const summary = `
+        <h3>${name} — ${periodLabel} Pay Summary</h3>
+        <p><strong>Hourly Rate:</strong> $${rate.toFixed(2)}</p>
+        <p>Regular Pay: $${regularPay.toFixed(2)}</p>
+        <p>Overtime Pay: $${overtimePay.toFixed(2)}</p>
+        <p>Sick Pay: $${sickPay.toFixed(2)}</p>
+        <p>Split Shift Pay: $${splitPay.toFixed(2)}</p>
+        <p>Meal Penalty Pay: $${mealPay.toFixed(2)}</p>
+        <hr>
+        <p><strong>Total ${periodLabel} Pay:</strong> $${totalPay.toFixed(2)}</p>
+      `;
+
+      document.getElementById("result").style.display = "block";
+      document.getElementById("result").innerHTML = summary;
+
+      saveToHistory(name, totalPay.toFixed(2), periodLabel);
+      showHistory();
+    }
+
+    function saveToHistory(name, totalPay, periodLabel) {
+      const record = {
+        name,
+        totalPay,
+        period: periodLabel,
+        date: new Date().toLocaleString()
+      };
+      const history = JSON.parse(localStorage.getItem("payrollHistory")) || [];
+      history.unshift(record);
+      localStorage.setItem("payrollHistory", JSON.stringify(history));
+    }
+
+    function showHistory() {
+      const history = JSON.parse(localStorage.getItem("payrollHistory")) || [];
+      const list = document.getElementById("historyList");
+      list.innerHTML = "";
+
+      if (history.length === 0) {
+        document.getElementById("history").style.display = "none";
+        return;
+      }
+
+      document.getElementById("history").style.display = "block";
+
+      history.forEach(entry => {
+        const div = document.createElement("div");
+        div.className = "history-entry";
+        div.innerHTML = `
+          <strong>${entry.name}</strong> — ${entry.period} Pay: $${entry.totalPay}<br>
+          <small>${entry.date}</small>
+        `;
+        list.appendChild(div);
+      });
+    }
+
+    function clearHistory() {
+      if (confirm("Are you sure you want to delete the payroll history?")) {
+        localStorage.removeItem("payrollHistory");
+        showHistory();
+      }
+    }
+
+    window.onload = showHistory;
+  </script>
+</body>
+</html>
